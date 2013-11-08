@@ -32,6 +32,7 @@ var wrench = require('wrench');
 function expandDirectories(entries) {
   var cwd = process.cwd();
   var files = [];
+  var absDir;
   entries.forEach(function(entry) {
     if (entry.file && entry.path) {
       if (entry.file.lastIndexOf(path.sep, 0) !== 0) {
@@ -40,17 +41,18 @@ function expandDirectories(entries) {
       files.push(entry);
     } else if (entry.dir && entry.prefix) {
       if (entry.dir.lastIndexOf(path.sep, 0) !== 0) {
-        entry.dir = path.join(cwd, entry.dir);
-      }
-      wrench.readdirSyncRecursive(entry.dir).forEach(function(name) {
-        var file = path.join(entry.dir, name);
-        if (fs.statSync(file).isFile()) {
-          files.push({
-            file: file,
-            path: entry.prefix + name
+          absDir = path.join(cwd, entry.dir);
+
+          wrench.readdirSyncRecursive(absDir).forEach(function(name) {
+            var file = path.join(absDir, name);
+            if (fs.statSync(file).isFile()) {
+              files.push({
+                file: file,
+                path: entry.prefix + name
+              });
+            }
           });
-        }
-      });
+      }
     }
   });
   return files;
@@ -86,7 +88,7 @@ function generateManifest(options, lastModified) {
   a.push('# ' + lastModified);
   a.push('');
   a.push('CACHE:');
-  options.files.forEach(function(x) {
+  options.filesExpanded.forEach(function(x) {
     a.push(x.path);
   });
   a.push('');
@@ -115,12 +117,14 @@ function cacheManifest(options) {
   options.networks = options.networks || ['*'];
   options.fallbacks = options.fallbacks || [];
 
-  options.files = expandDirectories(options.files);
+
+  options.filesExpanded = expandDirectories(options.files);
 
   var lastModified = 0;
   var manifest = null;
   var getManifest = function(callback) {
-    getLastModified(options.files, function(err, last) {
+    options.filesExpanded = expandDirectories(options.files);
+    getLastModified(options.filesExpanded, function(err, last) {
       if (err) {
         callback(err);
       } else {
