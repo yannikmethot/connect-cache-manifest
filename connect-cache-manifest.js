@@ -33,12 +33,15 @@ function expandDirectories(entries) {
   var cwd = process.cwd();
   var files = [];
   var absDir;
+
   entries.forEach(function(entry) {
     if (entry.file && entry.path) {
       if (entry.file.lastIndexOf(path.sep, 0) !== 0) {
-        entry.file = path.join(cwd, entry.file);
+          var fileObj = {};
+          fileObj.file = path.join(cwd, entry.file);
+          fileObj.path = entry.path;
       }
-      files.push(entry);
+      files.push(fileObj);
     } else if (entry.dir && entry.prefix) {
       if (entry.dir.lastIndexOf(path.sep, 0) !== 0) {
           absDir = path.join(cwd, entry.dir);
